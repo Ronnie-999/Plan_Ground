@@ -1,0 +1,295 @@
+/* Base Reset and Global Styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden; /* Prevent scrolling */
+}
+
+/* Main Layout */
+.container {
+    display: grid;
+    grid-template-columns: 50px 1fr; /* Sidebar and main area */
+    grid-template-rows: auto auto 1fr 30px; /* Top-bar, Main-nav, main content/sidebar, footer */
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+/* Header Section */
+.header {
+    grid-column: 1 / -1;
+    grid-row: 1 / 3; /* Span first two rows for top-bar and main-nav */
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid black;
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    width: 100%;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+}
+
+.logo-img-small {
+    height: 20px;
+    margin-right: 5px;
+}
+
+.app-title {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* Toggle Button */
+.toggle-button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    margin-left: auto; /* Push to the right */
+    padding: 0 10px;
+}
+
+/* Navigation Bar */
+.main-nav.minimized {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+}
+
+
+.main-nav {
+    width: 100%;
+    padding: 15px 10px; /* Initial vertical padding */
+    border-top: 1px solid black;
+    border-bottom: 1px solid #ccc;
+    background-color: #fff; /* Optional: ensure it stands out */
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out, border-bottom 0.3s ease-in-out;
+    max-height: 100px; /* A generous height to ensure full visibility when expanded */
+}
+
+.main-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.main-nav li {
+    margin: 0;
+}
+
+.main-nav li a {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    color: #333;
+    display: block;
+    margin-right: 5px; /* Space between elements */
+}
+
+.main-nav li:last-child a {
+    margin-right: 0;
+}
+
+.main-nav li.spacer {
+    flex-grow: 1;
+}
+
+.nav-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 5px; /* Space between elements */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-icon {
+    height: 24px; /* Adjust as needed */
+    width: 24px; /* Adjust as needed */
+}
+
+
+.sidebar {
+    grid-column: 1;
+    grid-row: 3;
+    background-color: #f0f0f0;
+    border-right: 1px solid #ccc;
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 50px;
+    max-width: 300px;
+    transition: width 0.1s ease;
+}
+
+.content {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.drawing-canvas {
+    display: block;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    border: 1px solid #ccc;
+}
+
+.resize-handle {
+    position: absolute;
+    right: -3px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background-color: transparent;
+    cursor: ew-resize;
+    z-index: 1000;
+}
+
+.resize-handle:hover {
+    background-color: #0066cc;
+}
+
+.resize-handle:active {
+    background-color: #0052a3;
+}
+
+.resizer {
+    width: 5px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    cursor: ew-resize;
+    z-index: 1;
+}
+
+.icon-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.icon-list li {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid lightgray;
+}
+
+.icon {
+    font-size: 1.2em;
+}
+
+.icon-button {
+    width: 100%;
+    height: 30px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 0;
+    transition: background-color 0.3s;
+}
+
+.icon-button:hover {
+    background-color: #f0f0f0;
+}
+
+.icon-button.active {
+    background-color: #e0e0e0;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Main Content Area */
+.content {
+    grid-column: 2 / -1;
+    grid-row: 3 / 4; /* Start after the header (top-bar + main-nav) */
+    padding: 10px;
+    position: relative;
+}
+
+.drawing-canvas {
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    border: 1px solid #ccc;
+    display: block;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    cursor: crosshair;
+}
+
+/* Two internal rows in .content */
+.content-row-1, .content-row-2 {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+/* Footer */
+.footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid black;
+    padding: 0 10px;
+    font-size: 0.8em;
+}
+
+/* Tooltip styles */
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    z-index: 1000;
+    bottom: 120%; /* Position above the button */
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none; /* Allow clicks on elements below */
+}
+
+.nav-button {
+    position: relative; /* Needed for absolute positioning of tooltip */
+}
