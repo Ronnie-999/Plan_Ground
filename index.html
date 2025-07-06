@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planground v1.0</title>
     <link rel="stylesheet" href="./public/css/style.css">
+    <script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
     <script src="./public/js/script.js" defer></script>
 </head>
 <body>
@@ -24,7 +25,7 @@
                     <li><a href="#">ANALYSE</a></li>
                     <li><a href="#">MODIFY</a></li>
                     <li class="spacer"></li>
-                    <li><button class="nav-button" title="Import Button"><img src="./public/import.svg" alt="Import Icon" class="nav-icon"></button></li>
+                    <li><button id="importButton" class="nav-button" title="Import Button"><img src="./public/import.svg" alt="Import Icon" class="nav-icon"></button></li>
                     <li><button class="nav-button" title="Export Button"><img src="./public/pdf-download-2617 (1).svg" alt="Export Icon" class="nav-icon"></button></li>
                 </ul>
             </nav>
@@ -48,6 +49,7 @@
         <main class="content">
             <canvas id="drawingCanvas" class="drawing-canvas"></canvas>
         </main>
+        <input type="file" id="fileInput" accept=".pdf,.svg" style="display: none;">
         <footer class="footer">
             <div class="metrics">METRICS</div>
             <div class="page-info">1/1</div>
