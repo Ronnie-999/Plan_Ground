@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isResizing = true;
         document.addEventListener('mousemove', handleResize);
         document.addEventListener('mouseup', stopResize);
-    });
+);
 
     function handleResize(e) {
         if (!isResizing) return;
@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
             container.style.gridTemplateColumns = `${newWidth}px 1fr`;
             // Force canvas to update its size
             resizeCanvas();
-        }
-    }
+    
+
 
     function stopResize() {
         isResizing = false;
