@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
     const canvas = document.getElementById('drawingCanvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
     const drawingModeBtn = document.getElementById('drawingModeBtn');
     const eraserModeBtn = document.getElementById('eraserModeBtn');
     const undoBtn = document.getElementById('undoBtn');
