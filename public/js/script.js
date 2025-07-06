@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to handle file import
     function handleFileImport(file) {
-        console.log('File selected:', file.name, file.type);
+        console.log('handleFileImport called with file:', file.name, file.type);
         clearCanvas(); // Clear canvas before importing new content
 
         if (file.type === 'application/pdf') {
