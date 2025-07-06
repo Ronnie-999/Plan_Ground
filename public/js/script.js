@@ -204,28 +204,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const fileReader = new FileReader();
             fileReader.onload = function() {
                 const typedarray = new Uint8Array(this.result);
+                console.log('Attempting to load PDF document...');
                 pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    console.log('PDF document loaded successfully.');
                     pdf.getPage(1).then(function(page) {
                         const viewport = page.getViewport({ scale: 1 });
                         const scale = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
                         const scaledViewport = page.getViewport({ scale: scale });
 
+                        // Calculate position to center the PDF
+                        const x = (canvas.width - scaledViewport.width) / 2;
+                        const y = (canvas.height - scaledViewport.height) / 2;
+
                         const renderContext = {
                             canvasContext: ctx,
-                            viewport: scaledViewport
+                            viewport: scaledViewport,
+                            transform: [scaledViewport.scale, 0, 0, -scaledViewport.scale, x, canvas.height - y] // Apply translation for centering
                         };
 
-                        // Center the PDF on the canvas
-                        const xOffset = (canvas.width - scaledViewport.width) / 2;
-                        const yOffset = (canvas.height - scaledViewport.height) / 2;
-                        ctx.save();
-                        ctx.translate(xOffset, yOffset);
-
                         page.render(renderContext).promise.then(function() {
-                            ctx.restore();
                             saveCanvasState(); // Save state after PDF import
+                            console.log('PDF rendering complete.');
+                        }).catch(function(error) {
+                            console.error('Error rendering PDF page:', error);
+                            alert('Error rendering PDF page: ' + error.message);
                         });
+                    }).catch(function(error) {
+                        console.error('Error getting PDF page:', error);
+                        alert('Error getting PDF page: ' + error.message);
                     });
+                }).catch(function(error) {
+                    console.error('Error loading PDF document:', error);
+                    alert('Error loading PDF document: ' + error.message);
                 });
             };
             fileReader.readAsArrayBuffer(file);
@@ -252,66 +262,5 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             alert('Unsupported file type. Please import a PDF or SVG file.');
         }
-        clearCanvas(); // Clear canvas before loading new content
-
-        if (file.type === 'application/pdf') {
-            const fileReader = new FileReader();
-            fileReader.onload = function() {
-                const pdfData = new Uint8Array(this.result);
-                // Asynchronously downloads PDF.js
-                pdfjsLib.getDocument({ data: pdfData }).promise.then(function(pdf) {
-                    // Fetch the first page
-                    pdf.getPage(1).then(function(page) {
-                        const viewport = page.getViewport({ scale: 1 });
-                        const scale = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
-                        const scaledViewport = page.getViewport({ scale: scale });
-
-                        // Prepare canvas using PDF page dimensions
-                        canvas.height = scaledViewport.height;
-                        canvas.width = scaledViewport.width;
-
-                        const renderContext = {
-                            canvasContext: ctx,
-                            viewport: scaledViewport
-                        };
-                        page.render(renderContext).promise.then(function() {
-                            console.log('PDF rendered on canvas');
-                            saveCanvasState(); // Save state after rendering PDF
-                        });
-                    });
-                }).catch(function(error) {
-                    console.error('Error rendering PDF:', error);
-                    alert('Error rendering PDF: ' + error.message);
-                });
-            };
-            fileReader.readAsArrayBuffer(file);
-        } else if (file.type === 'image/svg+xml') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    // Calculate scale to fit SVG within canvas while maintaining aspect ratio
-                    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-                    const scaledWidth = img.width * scale;
-                    const scaledHeight = img.height * scale;
-
-                    // Center the SVG on the canvas
-                    const x = (canvas.width / 2) - (scaledWidth / 2);
-                    const y = (canvas.height / 2) - (scaledHeight / 2);
-
-                    ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-                    console.log('SVG rendered on canvas');
-                    saveCanvasState(); // Save state after rendering SVG
-                };
-                img.onerror = function() {
-                    console.error('Error loading SVG image.');
-                    alert('Error loading SVG image.');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert('Unsupported file type. Please import a PDF or SVG file.');
-        }
-    }
+        // No change, this block is removed
 });
