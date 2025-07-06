@@ -263,4 +263,5 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Unsupported file type. Please import a PDF or SVG file.');
         }
         // No change, this block is removed
+    }
 });
