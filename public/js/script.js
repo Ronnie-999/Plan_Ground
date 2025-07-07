@@ -1,7 +1,34 @@
+// Main application script
+pdfjsLib.GlobalWorkerOptions.workerSrc = './public/js/pdf.worker.min.js';
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Configure PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    
+    console.log('DOM loaded, initializing application...');
+    console.log('DOMContentLoaded event fired in script.js');
+
+    // Import canvas transformation functions
+    let getTransformState, setTransformState, applyZoom, handlePanning;
+
+    async function initializeCanvasTransform() {
+        const module = await import('./canvas_transform.js');
+        getTransformState = module.getTransformState;
+        setTransformState = module.setTransformState;
+        applyZoom = module.applyZoom;
+        handlePanning = module.handlePanning;
+
+        // Initialize transform state
+        setTransformState(1, 0, 0);
+        
+        // Initialize panning functionality
+        handlePanning(canvas, ctx, redrawCanvas);
+
+        // Zoom functionality
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const delta = e.deltaY * -0.001; // Adjust zoom speed
+            applyZoom(delta, canvas, ctx, redrawCanvas);
+        });
+    }
+
     const canvas = document.getElementById('drawingCanvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const drawingModeBtn = document.getElementById('drawingModeBtn');
@@ -12,22 +39,103 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.querySelector('.sidebar');
     const resizeHandle = document.querySelector('.resize-handle');
     const container = document.querySelector('.container');
+    const themeToggleButton = document.getElementById('themeToggleButton');
+    
+    console.log('Elements found:', {
+        canvas: !!canvas,
+        drawingModeBtn: !!drawingModeBtn,
+        eraserModeBtn: !!eraserModeBtn,
+        undoBtn: !!undoBtn,
+        importButton: !!importButton,
+        fileInput: !!fileInput,
+        themeToggleButton: !!themeToggleButton
+    });
+
     let isDrawing = false;
     let isDrawingMode = false;
     let isEraserMode = false;
-    let lastX = 0;
-    let lastY = 0;
     let isResizing = false;
     const eraserSize = 20;
     const undoStack = [];
-    let zoomLevel = 1;
-    let panX = 0;
-    let panY = 0;
-    const minZoom = 0.1;
-    const maxZoom = 5;
     
-    // Save initial canvas state
-    saveCanvasState();
+    // Function to save canvas state
+    function saveCanvasState() {
+        undoStack.push(canvas.toDataURL());
+        if (undoStack.length > 50) {
+            undoStack.shift();
+        }
+        console.log('Canvas state saved. Undo stack length:', undoStack.length);
+    }
+
+    // Function to clear undo stack
+    function clearUndoStack() {
+        undoStack.length = 0;
+        saveCanvasState();
+    }
+
+    // Redraw canvas function
+    function redrawCanvas() {
+        if (undoStack.length > 0) {
+            const currentState = undoStack[undoStack.length - 1];
+            const img = new Image();
+            img.onload = function() {
+                ctx.save();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const { zoomLevel, panX, panY } = getTransformState();
+                ctx.translate(panX, panY);
+                ctx.scale(zoomLevel, zoomLevel);
+                ctx.drawImage(img, 0, 0);
+                ctx.restore();
+            };
+            img.src = currentState;
+        }
+    }
+
+    // Initialize file import manager
+    if (window.FileImportManager) {
+        const fileImportManager = new window.FileImportManager(
+            canvas, 
+            ctx, 
+            saveCanvasState, 
+            redrawCanvas,
+            clearUndoStack
+        );
+        
+        // Setup file input handlers
+        fileImportManager.setupFileInputHandlers(importButton, fileInput);
+        console.log('File import manager initialized');
+    } else {
+        console.error('FileImportManager not found');
+    }
+
+    // Set canvas size to match its display size
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        
+        // Restore drawing context settings after resize
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        
+        // Save initial state after resize
+        if (undoStack.length === 0) {
+            saveCanvasState();
+        }
+        redrawCanvas(); // Redraw to apply current zoom/pan after resize
+    }
+
+    // Initial resize
+    resizeCanvas();
+
+    // Resize canvas when window is resized
+    window.addEventListener('resize', function() {
+        setTimeout(resizeCanvas, 100);
+    });
+
+    // Call the async initialization function
+    initializeCanvasTransform();
 
     // Sidebar resize functionality
     resizeHandle.addEventListener('mousedown', function(e) {
@@ -39,14 +147,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleResize(e) {
         if (!isResizing) return;
         
-        // Calculate new width based on mouse position
         const newWidth = e.clientX;
         
-        // Apply constraints
         if (newWidth >= 50 && newWidth <= 300) {
             container.style.gridTemplateColumns = `${newWidth}px 1fr`;
-            // Force canvas to update its size
-            resizeCanvas();
+            setTimeout(resizeCanvas, 10);
         }
     }
 
@@ -56,28 +161,37 @@ document.addEventListener('DOMContentLoaded', function() {
         document.removeEventListener('mouseup', stopResize);
     }
 
-    // Set canvas size to match its display size
-    function resizeCanvas() {
-        // Save current canvas content
-        const tempImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        
-        // Restore saved content
-        ctx.putImageData(tempImage, 0, 0);
-        
-        // Restore drawing context settings after resize
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
+    const lightModeBtn = document.getElementById('lightMode');
+    const darkModeBtn = document.getElementById('darkMode');
+
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+        }
     }
 
-    // Initial resize
-    resizeCanvas();
+    // Apply saved theme on load
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        applyTheme(savedTheme);
+    } else {
+        // Default to light mode if no preference is saved
+        applyTheme('light');
+    }
 
-    // Resize canvas when window is resized
-    window.addEventListener('resize', resizeCanvas);
+    lightModeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        applyTheme('light');
+    });
+
+    darkModeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        applyTheme('dark');
+    });
 
     // Toggle drawing mode
     drawingModeBtn.addEventListener('click', function() {
@@ -91,6 +205,60 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 2;
         console.log('Drawing mode:', isDrawingMode ? 'enabled' : 'disabled');
+    });
+
+    // Mouse events for drawing and erasing
+    canvas.addEventListener('mousedown', function(e) {
+        if (e.button === 0) { // Left mouse button
+            isDrawing = true;
+            const { zoomLevel, panX, panY } = getTransformState();
+            ctx.beginPath();
+            ctx.moveTo((e.offsetX - panX) / zoomLevel, (e.offsetY - panY) / zoomLevel);
+        }
+    });
+
+    canvas.addEventListener('mousemove', function(e) {
+        if (!isDrawing) return;
+
+        const { zoomLevel, panX, panY } = getTransformState();
+        const x = (e.offsetX - panX) / zoomLevel;
+        const y = (e.offsetY - panY) / zoomLevel;
+
+        if (isDrawingMode) {
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        } else if (isEraserMode) {
+            ctx.clearRect(x - eraserSize / 2, y - eraserSize / 2, eraserSize, eraserSize);
+        }
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        if (isDrawing) {
+            isDrawing = false;
+            saveCanvasState();
+        }
+    });
+
+    canvas.addEventListener('mouseout', function() {
+        if (isDrawing) {
+            isDrawing = false;
+            saveCanvasState();
+        }
+    });
+
+    // Undo functionality
+    undoBtn.addEventListener('click', function() {
+        if (undoStack.length > 1) {
+            undoStack.pop(); // Remove current state
+            redrawCanvas(); // Redraw previous state
+            console.log('Undo successful. Undo stack length:', undoStack.length);
+        } else if (undoStack.length === 1) {
+            // If only one state left, clear canvas and stack
+            undoStack.pop();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            saveCanvasState(); // Save empty state
+            console.log('Canvas cleared. Undo stack length:', undoStack.length);
+        }
     });
 
     // Toggle eraser mode
@@ -107,12 +275,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Eraser mode:', isEraserMode ? 'enabled' : 'disabled');
     });
 
-    // Start drawing/erasing on left mouse button down
+    // Drawing functionality
     canvas.addEventListener('mousedown', function(e) {
-        if (e.button === 0 && (isDrawingMode || isEraserMode)) { // Left mouse button and either mode is active
+        if (e.button === 0 && (isDrawingMode || isEraserMode)) {
             isDrawing = true;
             
-            // Convert mouse coordinates to canvas coordinates considering zoom and pan
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -131,27 +298,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Function to save canvas state
-    function saveCanvasState() {
-        undoStack.push(canvas.toDataURL());
-        // Limit the undo stack size to prevent memory issues
-        if (undoStack.length > 50) {
-            undoStack.shift(); // Remove oldest state if stack gets too large
-        }
-    }
-
-    // Undo button click handler
-    undoBtn.addEventListener('click', function() {
-        if (undoStack.length > 1) { // Keep at least the initial state
-            undoStack.pop(); // Remove current state
-            redrawCanvas(); // Use the new redraw function that handles zoom
-        }
-    });
-
-    // Draw/erase line while moving mouse
     canvas.addEventListener('mousemove', function(e) {
         if (isDrawing && (isDrawingMode || isEraserMode)) {
-            // Convert mouse coordinates to canvas coordinates considering zoom and pan
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -169,12 +317,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Stop drawing when mouse button is released or leaves canvas
     canvas.addEventListener('mouseup', function() {
         if (isDrawing) {
             isDrawing = false;
             ctx.restore();
-            // Save canvas state after completing the stroke
             saveCanvasState();
             console.log('Stroke completed, saved canvas state');
         }
@@ -184,46 +330,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isDrawing) {
             isDrawing = false;
             ctx.restore();
-            // Save canvas state if stroke was interrupted by leaving canvas
             saveCanvasState();
             console.log('Stroke interrupted, saved canvas state');
         }
     });
 
-    // Set up drawing style
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
+    // Undo functionality
+    undoBtn.addEventListener('click', function() {
+        if (undoStack.length > 1) {
+            undoStack.pop();
+            redrawCanvas();
+        }
+    });
 
     // Zoom functionality
-    function applyTransform() {
-        ctx.save();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.scale(zoomLevel, zoomLevel);
-        ctx.translate(panX, panY);
-    }
-
-    function resetTransform() {
-        ctx.restore();
-    }
-
-    function redrawCanvas() {
-        if (undoStack.length > 0) {
-            const currentState = undoStack[undoStack.length - 1];
-            const img = new Image();
-            img.onload = function() {
-                ctx.save();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.scale(zoomLevel, zoomLevel);
-                ctx.translate(panX, panY);
-                ctx.drawImage(img, 0, 0);
-                ctx.restore();
-            };
-            img.src = currentState;
-        }
-    }
-
-    // Mouse wheel zoom
     canvas.addEventListener('wheel', function(e) {
         e.preventDefault();
         
@@ -231,13 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
-        // Calculate zoom factor
         const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
         const newZoom = zoomLevel * zoomFactor;
         
-        // Apply zoom limits
         if (newZoom >= minZoom && newZoom <= maxZoom) {
-            // Calculate new pan to zoom towards mouse position
             const zoomPointX = (mouseX / zoomLevel) - panX;
             const zoomPointY = (mouseY / zoomLevel) - panY;
             
@@ -252,99 +369,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Update drawing context settings after zoom
     function updateDrawingContext() {
         ctx.strokeStyle = isEraserMode ? 'white' : 'black';
         ctx.lineWidth = isEraserMode ? eraserSize : 2;
         ctx.lineCap = 'round';
     }
 
-    // Import button click handler
-    importButton.addEventListener('click', function() {
-        fileInput.click(); // Programmatically click the hidden file input
-    });
-
-    // File input change handler
-    fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            handleFileImport(file);
-        }
-    });
-
-    // Function to clear the canvas
-    function clearCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Optionally, reset undo stack if clearing means a fresh start
-        undoStack.length = 0;
-        saveCanvasState(); // Save the cleared state
-    }
-
-    // Function to handle file import
-    function handleFileImport(file) {
-        console.log('handleFileImport called with file:', file.name, file.type);
-        clearCanvas(); // Clear canvas before importing new content
-
-        if (file.type === 'application/pdf') {
-            const fileReader = new FileReader();
-            fileReader.onload = function() {
-                const typedarray = new Uint8Array(this.result);
-                console.log('Attempting to load PDF document...');
-                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-                    console.log('PDF document loaded successfully.');
-                    pdf.getPage(1).then(function(page) {
-                        const viewport = page.getViewport({ scale: 1 });
-                        
-                        // Use a fixed scale that matches drawing scale (1:1 pixel ratio)
-                        const drawingScale = 1;
-                        const scaledViewport = page.getViewport({ scale: drawingScale });
-
-                        // Calculate position to center the PDF
-                        const x = (canvas.width - scaledViewport.width) / 2;
-                        const y = (canvas.height - scaledViewport.height) / 2;
-
-                        const renderContext = {
-                            canvasContext: ctx,
-                            viewport: scaledViewport
-                        };
-
-                        page.render(renderContext).promise.then(function() {
-                            saveCanvasState(); // Save state after PDF import
-                            redrawCanvas(); // Apply current zoom level
-                            console.log('PDF rendering complete at 1:1 scale.');
-                        }).catch(function(error) {
-                            console.error('Error rendering PDF page:', error);
-                            alert('Error rendering PDF page: ' + error.message);
-                        });
-                    }).catch(function(error) {
-                        console.error('Error getting PDF page:', error);
-                        alert('Error getting PDF page: ' + error.message);
-                    });
-                }).catch(function(error) {
-                    console.error('Error loading PDF document:', error);
-                    alert('Error loading PDF document: ' + error.message);
-                });
-            };
-            fileReader.readAsArrayBuffer(file);
-        } else if (file.type === 'image/svg+xml') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    // Use 1:1 scale for SVG to match drawing scale
-                    const x = (canvas.width - img.width) / 2;
-                    const y = (canvas.height - img.height) / 2;
-
-                    ctx.drawImage(img, x, y, img.width, img.height);
-                    saveCanvasState(); // Save state after SVG import
-                    redrawCanvas(); // Apply current zoom level
-                    console.log('SVG rendering complete at 1:1 scale.');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        } else {
-            alert('Unsupported file type. Please import a PDF or SVG file.');
-        }
-    }
+    // Set up initial drawing style
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
 });

@@ -6,17 +6,25 @@
     <title>Planground v1.0</title>
     <link rel="stylesheet" href="./public/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="./public/js/script.js"></script>
+    <script src="./public/js/impexp.js"></script>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <div class="top-bar">
+
                 <div class="logo-section">
-                    <img src="./public/images/logo-02.svg" alt="Planground Logo" class="logo-img-small">
-                    <span class="app-title">PLANGROUND v.1.0</span>
+                    <img src="./public/images/logo-02.svg" alt="Planground Logo" class="logo-icon">
+                    <span>PLANGROUND v.1.0</span>
                 </div>
                 <button id="toggle-taskbar" class="toggle-button">☰</button>
+                <div class="dropdown">
+                    <button id="themeToggleButton" class="toggle-button">&#9776;</button>
+                    <div class="dropdown-content">
+                        <a href="#" id="lightMode">Light Mode</a>
+                        <a href="#" id="darkMode">Dark Mode</a>
+                    </div>
+                </div>
             </div>
             <nav class="main-nav">
                 <ul>
@@ -55,5 +63,6 @@
             <div class="page-info">1/1</div>
         </footer>
     </div>
+    <script src="./public/js/script.js"></script>
 </body>
 </html>
