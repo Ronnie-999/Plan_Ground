@@ -31,10 +31,7 @@ This document outlines the current state of the PLANGROUND V-1.0 application and
 ### To Be Implemented:
 
 *   **Advanced Drawing Tools:**
-    *   Different brush types and sizes.
-    *   Color palette selection.
     *   Shape drawing tools (lines, rectangles, circles, etc.).
-    *   Text input functionality.
 
 *   **Layer Management:**
     *   Support for multiple drawing layers.
