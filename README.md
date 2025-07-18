@@ -66,3 +66,4 @@ python -m http.server 3000
 ```
 
 Then, open your web browser and go to `http://localhost:3000`.
+Um meinen Namen für eine Arbeitsschicht am 15. Juli 2025 einzutragen (To enter my name for a work shift on July 15, 2025)
